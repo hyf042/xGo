@@ -32,5 +32,8 @@
     <ClInclude Include="brown.h">
       <Filter>源文件</Filter>
     </ClInclude>
+    <ClInclude Include="naiveSimulator.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

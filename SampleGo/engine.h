@@ -47,6 +47,7 @@ namespace Go
 		virtual void log_board() {
 		}
 		virtual void log_info(std::string info) {
+			log << "info: " << info << std::endl;
 		}
 
 		// basic funcs
