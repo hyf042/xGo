@@ -45,7 +45,7 @@ namespace Go
 			log.flush();
 		}
 
-		override void init(std::string log_filename = "log.txt") {
+		override void init(std::string log_filename = "") {
 			Engine::init(log_filename);
 
 			delta[0] = Point(-1, 0);
@@ -423,6 +423,7 @@ namespace Go
 			} while (p2 != p);
 		}
 
+	public:
 		/* Evaluator Utility */
 		// generate all the legal moves
 		std::vector<Point> generate_legal_moves(int color) {

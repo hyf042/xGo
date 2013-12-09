@@ -84,8 +84,9 @@
     <ClInclude Include="eater.h" />
     <ClInclude Include="engine.h" />
     <ClInclude Include="gtp.h" />
-    <ClInclude Include="MonteCarlo.h" />
     <ClInclude Include="naiveSimulator.h" />
+    <ClInclude Include="uct\MonteCarlo.h" />
+    <ClInclude Include="uct\tree.h" />
     <ClInclude Include="uct\uct.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
