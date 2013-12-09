@@ -4,6 +4,8 @@
 #include <ctime>
 #include "gtp.h"
 #include "brown.h"
+#include "eater.h"
+#include "MonteCarlo.h"
 using namespace std;
 
 int main(int argc, char **argv)
@@ -19,7 +21,7 @@ int main(int argc, char **argv)
 	
 	FILE *f = fopen("dump.txt", "w");
 	
-	Go::Engine *engine = new Go::Brown();
+	Go::Engine *engine = new Go::UCT::MonteCarlo();
 	engine->init();
 	Go::GTP::instance().init(engine);
 	Go::GTP::instance().run(stdin, f);

@@ -22,26 +22,11 @@ namespace Go
 		Point ko;
 		Point delta[4];
 
-		int board[MAX_BOARD][MAX_BOARD];
+		short board[MAX_BOARD][MAX_BOARD];
 		Point next_stone[MAX_BOARD][MAX_BOARD];
-		int final_status[MAX_BOARD][MAX_BOARD];
+		short final_status[MAX_BOARD][MAX_BOARD];
 	public:
-		override void init(std::string log_filename = "log.txt") {
-			Engine::init(log_filename);
-
-			delta[0] = Point(-1, 0);
-			delta[1] = Point(1, 0);
-			delta[2] = Point(0, -1);
-			delta[3] = Point(0, 1);
-
-			clear_board();
-			/*for (int i = 0; i < 20; i++) {
-				int color = rand() % 2 ? BLACK : WHITE;
-				Point p = generate_move(color);
-				play_move(p, color);
-			}*/
-		}
-		override void log_board(bool detail = false) {
+		void log_board(short board[MAX_BOARD][MAX_BOARD], bool detail = false) {
 			log << "-------------------------------" << std::endl;
 			for (int i = 0; i < board_size; i++) {
 				for (int j = 0; j < board_size; j++) {
@@ -58,6 +43,22 @@ namespace Go
 			}
 			log << "-------------------------------" << std::endl;
 			log.flush();
+		}
+
+		override void init(std::string log_filename = "log.txt") {
+			Engine::init(log_filename);
+
+			delta[0] = Point(-1, 0);
+			delta[1] = Point(1, 0);
+			delta[2] = Point(0, -1);
+			delta[3] = Point(0, 1);
+
+			clear_board();
+			/*for (int i = 0; i < 20; i++) {
+				int color = rand() % 2 ? BLACK : WHITE;
+				Point p = generate_move(color);
+				play_move(p, color);
+			}*/
 		}
 
 		override void clear_board() {
@@ -128,8 +129,8 @@ namespace Go
 			ko = Point(-1, -1);
 
 			// log the entire board info into log file
-			log << color << ": " << p.r << " " << p.c << std::endl;
-			log_board();
+			log_board(board);
+			log << get_color_str(color) << ": (" << p.r << " " << p.c << ")" << std::endl;
 			/* Nothing more happens if the move was a pass. */
 			if (pass_move(p))
 				return;
@@ -197,10 +198,6 @@ namespace Go
 				if (!has_additional_liberty(p, a)) {
 					ko = a;
 				}
-			}
-
-			if (p.r == 18 && p.c == 14) {
-				log_board(true);
 			}
 		}
 		override bool legal_move(Point p, int color) {
@@ -287,8 +284,19 @@ namespace Go
 		}
 
 	protected:
+		/* Basic Utility */
 		int other_color(int color) const {
 			return (WHITE + BLACK - (color));
+		}
+		std::string get_color_str(int color) const {
+			if (color == 0)
+				return "EMPTY";
+			else if (color == 1)
+				return "WHITE";
+			else if (color == 2)
+				return "BLACK";
+			else
+				return "UNKNOWN";
 		}
 		bool pass_move(Point p)
 		{
@@ -298,23 +306,30 @@ namespace Go
 		{
 			return p.r >= 0 && p.r < board_size && p.c >= 0 && p.c < board_size;
 		}
-		int suicide(Point p, int color)
+		int get_color(Point p) const {
+			return board[p.r][p.c];
+		}
+
+		/* Validator */
+		bool suicide(Point p, int color)
 		{
 			for (int k = 0; k < 4; k++)
 				if (provides_liberty(p+delta[k], p, color))
-					return 0;
+					return false;
 
-			return 1;
+			return true;
 		}
-		int provides_liberty(Point a, Point p, int color)
+		// check if a point p is provided liberty from p, 
+		// a special case is that a is unfriendly but it's captured by p
+		bool provides_liberty(Point a, Point p, int color)
 		{
 			/* A vertex off the board does not provide a liberty. */
 			if (!on_board(a))
-				return 0;
+				return false;
 
 			/* An empty vertex IS a liberty. */
 			if (get_board(a) == EMPTY)
-				return 1;
+				return true;
 
 			/* A friendly string provides a liberty to (i, j) if it currently
 			* has more liberties than the one at (i, j).
@@ -327,21 +342,44 @@ namespace Go
 			*/
 			return !has_additional_liberty(a, p);
 		}
-		int has_additional_liberty(Point p, Point lib)
+		// check whether p has additional liberty except lib
+		bool has_additional_liberty(Point p, Point lib)
 		{
 			Point pos = p;
 			do {
 				for (int k = 0; k < 4; k++) {
 					Point b = pos+delta[k];
 					if (on_board(b) && get_board(b) == EMPTY && (b.r != lib.r || b.c != lib.c))
-						return 1;
+						return true;
 				}
 
 				pos = next_stone[pos.r][pos.c];
 			} while (pos != p);
 
-			return 0;
+			return false;
 		}
+		// count the liberty of p
+		int count_liberty(Point p)
+		{
+			int cnt = 0;
+			Point pos = p;
+			point_set hash;
+			do {
+				for (int k = 0; k < 4; k++) {
+					Point b = pos+delta[k];
+					if (on_board(b) && get_board(b) == EMPTY && hash.find(b)==hash.end()) {
+						cnt++;
+						hash.insert(b);
+					}
+				}
+
+				pos = next_stone[pos.r][pos.c];
+			} while (pos != p);
+
+			return cnt;
+		}
+
+		/* Strings */
 		int remove_string(Point p)
 		{
 			Point pos = p;
@@ -383,6 +421,82 @@ namespace Go
 				final_status[p2.r][p2.c] = status;
 				p2 = next_stone[p2.r][p2.c];
 			} while (p2 != p);
+		}
+
+		/* Evaluator Utility */
+		// generate all the legal moves
+		std::vector<Point> generate_legal_moves(int color) {
+			std::vector<Point> moves;
+
+			for (int ai = 0; ai < board_size; ai++)
+				for (int aj = 0; aj < board_size; aj++) {
+					Point a(ai, aj);
+					/* Consider moving at (ai, aj) if it is legal and not suicide. */
+					if (legal_move(a, color)
+						&& !suicide(a, color)) {
+							/* Further require the move not to be suicide for the opponent... */
+							if (!suicide(a, other_color(color)))
+								moves.push_back(a);
+							else {
+								/* ...however, if the move captures at least one stone,
+								* consider it anyway.
+								*/
+								for (int k = 0; k < 4; k++) {
+									Point b = a+delta[k];
+									if (on_board(b) && get_board(b) == other_color(color)) {
+										moves.push_back(a);
+										break;
+									}
+								}
+							}
+					}
+				}
+
+			return moves;
+		}
+		// generate good and legal moves, here is a fake way just to generate all legal moves
+		virtual std::vector<Point> generate_good_moves(int color) {
+			return generate_legal_moves(color);
+		}
+		// evaluate the position value of a point
+		int pos_evaluate(Point p) {
+			if (!on_board(p))
+				return -1;
+			else
+				return (board_size-std::min(p.r, board_size-p.r-1)) + (board_size-std::min(p.c, board_size-p.c-1));
+		}
+		// reconstruct the next_stone array
+		void reconstruct_next_stone() {
+			for (int i = 0; i < board_size; i++)
+				for (int j = 0; j < board_size; j++)
+					next_stone[i][j] = Point(i,j);
+			for (int i = 0; i < board_size; i++)
+				for (int j = 0; j < board_size; j++) {
+					Point p = Point(i, j);
+					Point a = p + delta[1], b = p + delta[3];
+					if (on_board(a) && get_color(p) == get_color(a) && !same_string(a, p))
+						std::swap(next_stone[a.r][a.c], next_stone[p.r][p.c]);
+					if (on_board(b) && get_color(p) == get_color(b) && !same_string(b, p))
+						std::swap(next_stone[b.r][b.c], next_stone[p.r][p.c]);
+				}
+		}
+		bool is_final_territory(Point p, int color) {
+			if (!on_board(p))
+				return false;
+
+			if (color == BLACK) {
+				if (final_status[p.r][p.c] == BLACK_TERRITORY)
+					return true;
+				if (board[p.r][p.c] != EMPTY && (board[p.r][p.c] == WHITE ^ final_status[p.r][p.c] == ALIVE))
+					return true;
+			}
+			else if (color == WHITE)  {
+				if (final_status[p.r][p.c] == WHITE_TERRITORY)
+					return true;
+				if (board[p.r][p.c] != EMPTY && (board[p.r][p.c] == BLACK ^ final_status[p.r][p.c] == ALIVE))
+					return true;
+			}
+			return false;
 		}
 	};
 }

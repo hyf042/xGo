@@ -44,12 +44,20 @@ namespace Go
 				log.open(log_filename);
 			}
 		}
-		virtual void log_board() {
-		}
 		virtual void log_info(std::string info) {
 			log << "info: " << info << std::endl;
 		}
+		virtual void log_format(const char* fmt, ...)
+		{
+			va_list arg;
+			char buffer[1024] = {0};
 
+			va_start(arg, fmt);
+			vsprintf(buffer, fmt, arg);
+			va_end(arg);
+
+			log_info(buffer);
+		}
 		// basic funcs
 		virtual void clear_board() = 0;
 		virtual bool board_empty() = 0;

@@ -7,6 +7,8 @@
 #ifndef _BASIC_H_
 #define _BASIC_H_
 
+#include <unordered_set>
+
 namespace Go
 {
 	class Point
@@ -28,6 +30,16 @@ namespace Go
 			return !(a==b);
 		}
 	};
+
+	class PointHasher
+	{
+	public:
+		size_t operator()(const Point &p) const {
+			return p.r * 1000 + p.c;
+		}
+	};
+
+	typedef std::unordered_set<Point, PointHasher> point_set;
 
 	enum Color {EMPTY = 0, WHITE = 1, BLACK = 2};
 	enum FinalStatus {DEAD, ALIVE, SEKI, WHITE_TERRITORY, BLACK_TERRITORY, UNKNOWN};
