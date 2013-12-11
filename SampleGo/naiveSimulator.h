@@ -7,6 +7,7 @@
 #ifndef _SIMULATOR_H_
 #define _SIMULATOR_H_
 
+#include <functional>
 #include "engine.h"
 
 namespace Go
@@ -495,6 +496,34 @@ namespace Go
 				final_status[p2.r][p2.c] = status;
 				p2 = next_stone[p2.r][p2.c];
 			} while (p2 != p);
+		}
+
+		void count_string_and_liberty(Point p, int &cnt, int &liberty) {
+			cnt = 0, liberty = 0;
+			Point pos = p;
+			point_set hash;
+			do {
+				cnt++;
+
+				for (int k = 0; k < 4; k++) {
+					Point b = pos+delta[k];
+					if (on_board(b) && get_board(b) == EMPTY && hash.find(b)==hash.end()) {
+						liberty++;
+						hash.insert(b);
+					}
+				}
+
+				pos = next_stone[pos.r][pos.c];
+			} while (pos != p);
+		}
+		typedef std::function<void(Point)> PointCallback;
+		void map_string(Point p, PointCallback cb) {
+			Point pos = p;
+			do {
+				if (cb)
+					cb(pos);
+				pos = next_stone[pos.r][pos.c];
+			} while (pos != p);
 		}
 
 	public:

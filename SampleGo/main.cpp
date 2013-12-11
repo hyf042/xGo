@@ -5,8 +5,8 @@
 #include "gtp.h"
 #include "brown.h"
 #include "eater.h"
-#include "uct/MonteCarlo.h"
 #include "uct/uct.h"
+#include "minmax/minmax.h"
 using namespace std;
 
 int main(int argc, char **argv)
@@ -22,7 +22,8 @@ int main(int argc, char **argv)
 	
 	FILE *f = fopen("dump.txt", "w");
 	
-	Go::Engine *engine = new Go::UCT::UCT<Go::UCT::Policy>();
+	//Go::Engine *engine = new Go::UCT::UCT<Go::UCT::Policy>();
+	Go::Engine *engine = new Go::MinMax::Minmax();
 	engine->init("log.txt");
 	// uncomment the following part if you want to debug a specific board
 	/*engine->set_board_size(13);

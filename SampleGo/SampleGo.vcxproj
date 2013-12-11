@@ -84,6 +84,7 @@
     <ClInclude Include="eater.h" />
     <ClInclude Include="engine.h" />
     <ClInclude Include="gtp.h" />
+    <ClInclude Include="minmax\minmax.h" />
     <ClInclude Include="naiveSimulator.h" />
     <ClInclude Include="uct\monteCarlo.h" />
     <ClInclude Include="uct\policy.h" />

@@ -54,6 +54,9 @@
     <ClInclude Include="uct\policy.h">
       <Filter>ai\uct</Filter>
     </ClInclude>
+    <ClInclude Include="minmax\minmax.h">
+      <Filter>ai\minmax</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

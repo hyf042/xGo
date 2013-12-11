@@ -1,6 +1,6 @@
 /*
 *	Author:	hyf042
-*	Date:	12-09-2013
+*	Date:	12-11-2013
 *
 *  Copyright 2013 hyf042. All rights reserved.
 */
@@ -16,7 +16,6 @@ namespace Go
 		class Policy {
 		public:
 			std::vector<Point> generate_good_moves(NaiveSimulator &board, int color) {
-				typedef std::pair<int, Point> valid_move_pair;
 				std::vector<Point> legal_moves = board.generate_legal_moves(color);
 				std::vector<Point> moves;
 

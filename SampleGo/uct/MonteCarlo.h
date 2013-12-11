@@ -4,8 +4,8 @@
 *
 *  Copyright 2013 hyf042. All rights reserved.
 */
-#ifndef _MONTE_CARLO_H_
-#define _MONTE_CARLO_H_
+#ifndef _UCT_MONTE_CARLO_H_
+#define _UCT_MONTE_CARLO_H_
 
 #include <algorithm>
 #include "../naiveSimulator.h"
