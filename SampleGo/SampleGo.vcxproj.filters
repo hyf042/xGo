@@ -45,7 +45,7 @@
     <ClInclude Include="uct\tree.h">
       <Filter>ai\uct</Filter>
     </ClInclude>
-    <ClInclude Include="uct\MonteCarlo.h">
+    <ClInclude Include="uct\monteCarlo.h">
       <Filter>ai\uct</Filter>
     </ClInclude>
   </ItemGroup>

@@ -6,6 +6,7 @@
 #include "brown.h"
 #include "eater.h"
 #include "uct/MonteCarlo.h"
+#include "uct/uct.h"
 using namespace std;
 
 int main(int argc, char **argv)
@@ -21,8 +22,26 @@ int main(int argc, char **argv)
 	
 	FILE *f = fopen("dump.txt", "w");
 	
-	Go::Engine *engine = new Go::UCT::MonteCarlo();
+	Go::Engine *engine = new Go::UCT::UCT();
 	engine->init("log.txt");
+	/*engine->set_board_size(13);
+	engine->set_board("\
+.............\
+.............\
+X............\
+.............\
+.............\
+.............\
+.............\
+.............\
+.............\
+.............\
+.............\
+.............\
+.............");
+	Go::Point move = engine->generate_move(Go::BLACK);
+	printf("(%d, %d)\n", move.r, move.c);
+	return 0;*/
 	Go::GTP::instance().init(engine);
 	Go::GTP::instance().run(stdin, f);
 	delete engine;

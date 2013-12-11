@@ -16,7 +16,7 @@ namespace Go
 	public:
 		int r;
 		int c;
-		Point(int r = 0, int c = 0):r(r),c(c) {}
+		Point(int r = -1, int c = -1):r(r),c(c) {}
 		friend Point operator+(const Point &a, const Point &b) {
 			return Point(a.r+b.r, a.c+b.c);
 		}

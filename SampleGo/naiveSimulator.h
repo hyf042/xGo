@@ -26,6 +26,13 @@ namespace Go
 		Point next_stone[MAX_BOARD][MAX_BOARD];
 		short final_status[MAX_BOARD][MAX_BOARD];
 	public:
+		NaiveSimulator() {
+			delta[0] = Point(-1, 0);
+			delta[1] = Point(1, 0);
+			delta[2] = Point(0, -1);
+			delta[3] = Point(0, 1);
+		}
+
 		void log_board(short board[MAX_BOARD][MAX_BOARD], bool detail = false) {
 			log << "-------------------------------" << std::endl;
 			for (int i = 0; i < board_size; i++) {
@@ -44,14 +51,29 @@ namespace Go
 			log << "-------------------------------" << std::endl;
 			log.flush();
 		}
+		override void set_board(char *s) {
+			for (int i = 0; i < board_size; i++)
+				for (int j = 0; j < board_size; j++) {
+					char c = '.';
+					while (*s) {
+						if (*s == 'O' || *s == 'X' || *s == '.') {
+							c = *(s++);
+							break;
+						}
+						s++;
+					}
+					if (c == 'O')
+						board[i][j] = WHITE;
+					else if (c == 'X')
+						board[i][j] = BLACK;
+					else
+						board[i][j] = EMPTY;
+				}
+			reconstruct_next_stone();
+		}
 
 		override void init(std::string log_filename = "") {
 			Engine::init(log_filename);
-
-			delta[0] = Point(-1, 0);
-			delta[1] = Point(1, 0);
-			delta[2] = Point(0, -1);
-			delta[3] = Point(0, 1);
 
 			clear_board();
 			/*for (int i = 0; i < 20; i++) {
@@ -376,6 +398,30 @@ namespace Go
 				pos = next_stone[pos.r][pos.c];
 			} while (pos != p);
 
+			return cnt;
+		}
+		int count_additional_liberty(Point p, Point lib) {
+			Point pos = p;
+			point_set hash;
+			do {
+				for (int k = 0; k < 4; k++) {
+					Point b = pos+delta[k];
+					if (on_board(b) && get_board(b) == EMPTY && hash.find(b)==hash.end()) {
+						hash.insert(b);
+					}
+				}
+
+				pos = next_stone[pos.r][pos.c];
+			} while (pos != p);
+
+			int cnt = -1;
+			for (int k = 0; k < 4; k++) {
+				Point b = lib+delta[k];
+				if (on_board(b) && get_board(b) == EMPTY && hash.find(b)==hash.end()) {
+					cnt++;
+					hash.insert(b);
+				}
+			}
 			return cnt;
 		}
 

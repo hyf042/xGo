@@ -44,7 +44,9 @@ namespace Go
 				log.open(log_filename);
 			}
 		}
+		virtual void set_board(char *s) {}
 		virtual void log_info(std::string info) {
+			std::cout << "info: " << info << std::endl;
 			log << "info: " << info << std::endl;
 		}
 		virtual void log_format(const char* fmt, ...)
