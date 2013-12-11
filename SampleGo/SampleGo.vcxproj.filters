@@ -19,6 +19,9 @@
     <Filter Include="ai\uct">
       <UniqueIdentifier>{3ac8b1cf-f711-47ef-9aef-ebec84793691}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ai\minmax">
+      <UniqueIdentifier>{ecc0e9ad-2844-499a-87b1-3135cab74866}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basic.h">

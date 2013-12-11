@@ -22,7 +22,7 @@ namespace Go
 	}
 
 		const static int TimeLimit = 8;
-		const static int InitTimeLimit = 58;
+		const static int InitTimeLimit = 8;
 		const static int ExpandThrehold = 2;
 		const static float ExploreRate = 2.0f;
 
@@ -54,7 +54,7 @@ namespace Go
 				}
 			}
 
-			float value(bool onlyWin = false) const {
+			float value(bool onlyWin = true) const {
 				if (onlyWin)
 					return float(win)/playCnt;
 				else
