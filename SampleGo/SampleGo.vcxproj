@@ -86,6 +86,7 @@
     <ClInclude Include="gtp.h" />
     <ClInclude Include="naiveSimulator.h" />
     <ClInclude Include="uct\monteCarlo.h" />
+    <ClInclude Include="uct\policy.h" />
     <ClInclude Include="uct\tree.h" />
     <ClInclude Include="uct\uct.h" />
   </ItemGroup>

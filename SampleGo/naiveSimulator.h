@@ -18,10 +18,11 @@ namespace Go
 	 */
 	class NaiveSimulator : public Engine
 	{
-	protected:
+	public:
 		Point ko;
 		Point delta[4];
 
+		std::vector<Point> legal_moves;
 		short board[MAX_BOARD][MAX_BOARD];
 		Point next_stone[MAX_BOARD][MAX_BOARD];
 		short final_status[MAX_BOARD][MAX_BOARD];
@@ -31,6 +32,23 @@ namespace Go
 			delta[1] = Point(1, 0);
 			delta[2] = Point(0, -1);
 			delta[3] = Point(0, 1);
+		}
+		NaiveSimulator(NaiveSimulator &other) {
+			*this = other;
+		}
+		NaiveSimulator& operator=(NaiveSimulator &other) {
+			delta[0] = Point(-1, 0);
+			delta[1] = Point(1, 0);
+			delta[2] = Point(0, -1);
+			delta[3] = Point(0, 1);
+
+			this->board_size = other.board_size;
+
+			memcpy(this->board, other.board, sizeof(short)*MAX_BOARD*MAX_BOARD);
+			memcpy(this->next_stone, other.next_stone, sizeof(Point)*MAX_BOARD*MAX_BOARD);
+			this->ko = other.ko;
+
+			return *this;
 		}
 
 		void log_board(short board[MAX_BOARD][MAX_BOARD], bool detail = false) {
@@ -151,8 +169,8 @@ namespace Go
 			ko = Point(-1, -1);
 
 			// log the entire board info into log file
-			log_board(board);
-			log << get_color_str(color) << ": (" << p.r << " " << p.c << ")" << std::endl;
+			// log_board(board);
+			// log << get_color_str(color) << ": (" << p.r << " " << p.c << ")" << std::endl;
 			/* Nothing more happens if the move was a pass. */
 			if (pass_move(p))
 				return;
@@ -305,9 +323,9 @@ namespace Go
 			return ret;
 		}
 
-	protected:
+	public:
 		/* Basic Utility */
-		int other_color(int color) const {
+		static int other_color(int color)  {
 			return (WHITE + BLACK - (color));
 		}
 		std::string get_color_str(int color) const {
@@ -327,6 +345,16 @@ namespace Go
 		bool on_board(Point p)
 		{
 			return p.r >= 0 && p.r < board_size && p.c >= 0 && p.c < board_size;
+		}
+		bool is_first(int color) const {
+			int cnt = 0;
+			for (int i = 0; i < board_size; i++)
+				for (int j = 0; j < board_size; j++)
+					if (board[i][j] == other_color(color))
+						cnt++;
+					else if (board[i][j] != EMPTY)
+						return false;
+			return cnt <= 1;
 		}
 		int get_color(Point p) const {
 			return board[p.r][p.c];
@@ -472,13 +500,27 @@ namespace Go
 	public:
 		/* Evaluator Utility */
 		// generate all the legal moves
-		std::vector<Point> generate_legal_moves(int color) {
+		std::vector<Point> generate_empty_moves() {
 			std::vector<Point> moves;
 
 			for (int ai = 0; ai < board_size; ai++)
 				for (int aj = 0; aj < board_size; aj++) {
 					Point a(ai, aj);
+					if (on_board(a) && get_board(a) == EMPTY) {
+						moves.push_back(a);
+					}
+				}
+			return moves;
+		}
+		std::vector<Point>& generate_legal_moves(int color) {
+			std::vector<Point> &moves = legal_moves;
+			moves.clear();
+
+			for (int ai = 0; ai < board_size; ai++)
+				for (int aj = 0; aj < board_size; aj++) {
+					Point a(ai, aj);
 					/* Consider moving at (ai, aj) if it is legal and not suicide. */
+					
 					if (legal_move(a, color)
 						&& !suicide(a, color)) {
 							/* Further require the move not to be suicide for the opponent... */
@@ -500,10 +542,6 @@ namespace Go
 				}
 
 			return moves;
-		}
-		// generate good and legal moves, here is a fake way just to generate all legal moves
-		virtual std::vector<Point> generate_good_moves(int color) {
-			return generate_legal_moves(color);
 		}
 		// evaluate the position value of a point
 		int pos_evaluate(Point p) {

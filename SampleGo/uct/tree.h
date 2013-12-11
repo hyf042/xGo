@@ -15,24 +15,35 @@ namespace Go
 {
 	namespace UCT 
 	{
+#define NODE_FOR_EACH_CHILD(node, act_node, block) TreeNode *_p = child; while(_p) { \
+		TreeNode &act_node = *_p; \
+		block; \
+		_p = _p->brother; \
+	}
+
+		const static int TimeLimit = 8;
+		const static int InitTimeLimit = 58;
+		const static int ExpandThrehold = 2;
+		const static float ExploreRate = 2.0f;
+
 		class TreeNode
 		{
-			friend class UCT;
+		public:
 			const static int MAX_UCB = 10000;
 
 			int color;
 			float val;
+			int win;
 			int playCnt;
-			TreeNode *father;
-			MonteCarlo data;
+			TreeNode *parent;
 			Point move;
 		public:
 			TreeNode *child, *brother;
-			TreeNode(MonteCarlo *data, int color)
-				:child(NULL), brother(NULL), father(NULL), color(color) {
+			TreeNode(Point move, int color)
+				:child(NULL), brother(NULL), parent(NULL), color(color), move(move) {
+				win = 0;
 				val = 0;
 				playCnt = 0;
-				this->data = *data;
 			}
 			~TreeNode () {
 				TreeNode *p = child;
@@ -43,16 +54,34 @@ namespace Go
 				}
 			}
 
+			float value(bool onlyWin = false) const {
+				if (onlyWin)
+					return float(win)/playCnt;
+				else
+					return val;
+			}
+			float UCB() const {
+				if (playCnt == 0)
+					return MAX_UCB + rand() % 1000;
+				return value() + std::sqrt(ExploreRate * std::log(parent->playCnt) / playCnt);
+			}
+			bool is_root() const {
+				return parent == NULL;
+			}
 			bool is_leaf() const {
 				return child == NULL;
 			}
-			TreeNode *get_father() const {return father;}
+			bool is_mature() const {
+				return playCnt > ExpandThrehold;
+			}
+			TreeNode *get_father() const {return parent;}
 			Point get_move() const {return move;}
-
-			float get_UCB() const {
-				if (playCnt == 0)
-					return MAX_UCB + rand() % 1000;
-				return val + std::sqrt(2 * std::log(father->playCnt) / playCnt);
+			TreeNode* get_child(Point move) const {
+				NODE_FOR_EACH_CHILD(this, node, {
+					if (node.move == move)
+						return &node;
+				});
+				return NULL;
 			}
 
 			void append(TreeNode *node) {
@@ -62,43 +91,58 @@ namespace Go
 					node->brother = child;
 					child = node;
 				}
-				node->father = this;
+				node->parent = this;
 			}
-			int count() {
-				int cnt = 1;
+			void remove(TreeNode *node) {
 				TreeNode *p = child;
-				while(p) {
-					cnt += p->count();
-					p = p->brother;
+				if (p == node)
+					child = p->brother;
+				else {
+					TreeNode *q = p->brother;
+					while(q) {
+						if (q == node) {
+							p->brother = q->brother;
+							break;
+						}
+						p = q, q = p->brother;
+					}
 				}
+			}
+			int node_count() {
+				int cnt = 1;
+				NODE_FOR_EACH_CHILD(this, node, {
+					cnt += node.node_count();
+				});
 				return cnt;
 			}
 
-			// update the val (maximum of all children)
-			void update() {
+			// update the val throughout to root (maximum of all children) & win cnt
+			void update(bool isWin, float newVal) {
+				if (isWin)
+					win++;
 				if (!is_leaf()) {
-					TreeNode *p = child;
-					val = 0, playCnt ++;
-
-					while(p) {
-						if (p->playCnt > 0)
-							val = std::max(val, 1 - p->val);
-						p = p->brother;
-					}
+					val = 0;
+					NODE_FOR_EACH_CHILD(this, node, {
+						if (node.playCnt > 0)
+							val = std::max(val, 1 - node.val);
+					});
 				}
-				if (father != NULL)
-					father->update();
+				else
+					val = (playCnt * val + newVal) / (playCnt+1);
+				playCnt++;
+
+				if (parent != NULL)
+					parent->update(!isWin, newVal);
 			}
+
 			// expand this node with good_moves
-			void expand() {
+			void expand(MonteCarlo &board, Policy &policy) {
 				if (!is_leaf())
 					return;
 
-				std::vector<Point> moves = data.generate_good_moves(color);
+				std::vector<Point> moves = policy.generate_good_moves(board, color);
 				for (auto move : moves) {
-					TreeNode *node = new TreeNode(&data, data.other_color(color));
-					node->data.play_move(move, color);
-					node->move = move;
+					TreeNode *node = new TreeNode(move, board.other_color(color));
 					append(node);
 				}
 			}
@@ -106,52 +150,43 @@ namespace Go
 			TreeNode* chooseUCBNext() {
 				if (is_leaf()) return this;
 
-				TreeNode *p = child;
 				TreeNode *ret = NULL;
 				float maxVal;
 
-				while (p) {
-					float tmp = p->get_UCB();
-
+				NODE_FOR_EACH_CHILD(this, node, {
+					float tmp = node.UCB();
 					if (ret == NULL || tmp > maxVal) {
-						ret = p;
+						ret = &node;
 						maxVal = tmp;
 					}
-					p = p->brother;
-				}
+				});
 
-				if (ret == NULL)
-					return this;
-				else
-					return ret->chooseUCBNext();
+				return ret;
 			}
 			// pick best val subtree (must played)
 			TreeNode *pickBest() {
 				if (is_leaf()) return NULL;
 
-				TreeNode *p = child;
 				TreeNode *ret = NULL;
 				float maxVal = 0;
 
-				while (p) {
-					if (p->playCnt > 0) {
-						float tmp = 1 - p->val;
+				NODE_FOR_EACH_CHILD(this, node, {
+					if (node.playCnt > 0) {
+						float tmp = 1 - node.value();
 						if (ret == NULL || tmp > maxVal) {
-							ret = p;
+							ret = &node;
 							maxVal = tmp;
 						}
 					}
-					p = p->brother;
-				}
+				});
 
 				return ret;
 			}
 			// simulate the board with monteCarlo algorithm
-			float monteCarlo() {
-				MonteCarlo simulator(data);
-				float tmp = simulator.simulate(color);
-				val = (val * playCnt + tmp) / (playCnt + 1);
-				playCnt++;
+			float monteCarlo(MonteCarlo &board, Policy &policy) {
+				MonteCarlo simulator(board);
+				float tmp = simulator.simulate(policy, color);
+				update(tmp>0.5f, tmp);
 				return tmp;
 			}
 		};
