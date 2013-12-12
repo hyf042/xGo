@@ -17,6 +17,28 @@ namespace Go
 	 * If you want to use this simulate model (relatively slow),
 	 * You only need to inherit from this class and override the genmove funciton
 	 */
+	class LogNode {
+	public:
+		typedef std::pair<Point, int> pointInfo;
+		typedef std::pair<Point, Point> swapInfo;
+		Point move, ko, stone;
+		std::vector<pointInfo> removed;
+		std::vector<swapInfo> swaped;
+
+		void reset(Point move, Point ko, Point stone) {
+			this->move = move;
+			this->ko = ko;
+			this->stone = stone;
+			removed.clear();
+			swaped.clear();
+		}
+		void remove(Point move, int color) {
+			removed.push_back(std::make_pair(move, color));
+		}
+		void swap(Point a, Point b) {
+			swaped.push_back(std::make_pair(a, b));
+		}
+	};
 	class NaiveSimulator : public Engine
 	{
 	public:
@@ -27,6 +49,8 @@ namespace Go
 		short board[MAX_BOARD][MAX_BOARD];
 		Point next_stone[MAX_BOARD][MAX_BOARD];
 		short final_status[MAX_BOARD][MAX_BOARD];
+		LogNode logger;
+		std::vector<LogNode> history;
 	public:
 		NaiveSimulator() {
 			delta[0] = Point(-1, 0);
@@ -48,10 +72,24 @@ namespace Go
 			memcpy(this->board, other.board, sizeof(short)*MAX_BOARD*MAX_BOARD);
 			memcpy(this->next_stone, other.next_stone, sizeof(Point)*MAX_BOARD*MAX_BOARD);
 			this->ko = other.ko;
+			this->history = other.history;
 
 			return *this;
 		}
-
+		friend bool operator==(const NaiveSimulator &a, const NaiveSimulator &b) {
+			if (a.board_size != b.board_size)
+				return false;
+			if (a.ko != b.ko)
+				return false;
+			for (int i = 0; i < a.board_size; i++)
+				for (int j = 0; j < a.board_size; j++) {
+					if (a.board[i][j] != b.board[i][j])
+						return false;
+					if (a.next_stone[i][j] != b.next_stone[i][j])
+						return false;
+				}
+			return true;
+		}
 		void log_board(short board[MAX_BOARD][MAX_BOARD], bool detail = false) {
 			log << "-------------------------------" << std::endl;
 			for (int i = 0; i < board_size; i++) {
@@ -103,6 +141,7 @@ namespace Go
 		}
 
 		override void clear_board() {
+			history.clear();
 			memset(board, 0, sizeof(board));
 		}
 		override bool board_empty() {
@@ -165,7 +204,7 @@ namespace Go
 
 		override void play_move(Point p, int color) {
 			int captured_stones = 0;
-
+			logger.reset(p, ko, next_stone[p.r][p.c]);
 			/* Reset the ko point. */
 			ko = Point(-1, -1);
 
@@ -173,8 +212,10 @@ namespace Go
 			// log_board(board);
 			// log << get_color_str(color) << ": (" << p.r << " " << p.c << ")" << std::endl;
 			/* Nothing more happens if the move was a pass. */
-			if (pass_move(p))
+			if (pass_move(p)) {
+				history.push_back(logger);
 				return;
+			}
 
 			/* If the move is a suicide we only need to remove the adjacent
 			* friendly stones.
@@ -217,6 +258,7 @@ namespace Go
 					* next_stone pointers.
 					*/
 					std::swap(next_stone[a.r][a.c], next_stone[p.r][p.c]);
+					logger.swap(a, p);
 				}
 			}
 
@@ -240,6 +282,8 @@ namespace Go
 					ko = a;
 				}
 			}
+
+			history.push_back(logger);
 		}
 		override bool legal_move(Point p, int color) {
 			int other = other_color(color);
@@ -262,7 +306,7 @@ namespace Go
 
 			return 1;
 		}
-		
+
 		override void compute_final_status() {
 			for (int i = 0; i < board_size; i++)
 				for (int j = 0; j < board_size; j++)
@@ -359,6 +403,26 @@ namespace Go
 		}
 		int get_color(Point p) const {
 			return board[p.r][p.c];
+		}
+		bool undo() {
+			if (history.empty())
+				return false;
+			else {
+				LogNode logger = *history.rbegin();
+
+				ko = logger.ko;
+				std::reverse(logger.swaped.begin(), logger.swaped.end());
+				for (auto swap : logger.swaped)
+					std::swap(next_stone[swap.first.r][swap.first.c], next_stone[swap.second.r][swap.second.c]);
+				board[logger.move.r][logger.move.c] = EMPTY;
+				next_stone[logger.move.r][logger.move.c] = logger.stone;
+				for (auto remove : logger.removed)
+					board[remove.first.r][remove.first.c] = remove.second;
+
+				history.pop_back();
+
+				return true;
+			}
 		}
 
 		/* Validator */
@@ -460,6 +524,7 @@ namespace Go
 			Point pos = p;
 			int removed = 0;
 			do {
+				logger.remove(pos, board[pos.r][pos.c]);
 				board[pos.r][pos.c] = EMPTY;
 				removed++;
 				pos = next_stone[pos.r][pos.c];
@@ -516,14 +581,35 @@ namespace Go
 				pos = next_stone[pos.r][pos.c];
 			} while (pos != p);
 		}
-		typedef std::function<void(Point)> PointCallback;
+		typedef std::function<bool(Point)> PointCallback;
 		void map_string(Point p, PointCallback cb) {
 			Point pos = p;
 			do {
-				if (cb)
-					cb(pos);
+				if (!cb(pos))
+					return;
 				pos = next_stone[pos.r][pos.c];
 			} while (pos != p);
+		}
+		void flood_fill(Point p, PointCallback cb) {
+			point_set hash;
+			std::vector<Point> queue;
+			hash.insert(p);
+			queue.push_back(p);
+
+			int index = 0;
+			while(index < queue.size()) {
+				Point pos = queue[index++];
+				if (!cb(pos))
+					break;
+				if (get_board(pos) == EMPTY)
+					for (int k = 0; k < 4; k++) {
+						Point a = pos + delta[k];
+						if (on_board(a) && hash.find(a) == hash.end()) {
+							hash.insert(a);
+							queue.push_back(a);
+						}
+					}
+			}
 		}
 
 	public:

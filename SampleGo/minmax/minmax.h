@@ -27,26 +27,28 @@ namespace Go
 		class Minmax : public BoardData
 		{
 			const static int INFINITE = 100000000;
-			const static int MAX_DEPTH = 4;
+			const static int MAX_DEPTH = 5;
 			const static int TIME_LIMIT = 10;
 
-			int time_limit;
+			int time_limit, count;
 			Point nextMove, lastMove;
 		public:
 			override std::string get_name() { return "MyMinmax"; }
-			override std::string get_version() { return "0.1"; }
+			override std::string get_version() { return "0.3"; }
 			override Point generate_move(int color) {
 				nextMove = Point(-1, -1);
 				lastMove = Point(-2, -2);
 
 				BoardData board(*this);
 				time_limit = clock() + TIME_LIMIT * CLOCKS_PER_SEC;
+				count = 0;
 				int score = alpha_beta_search(board, color, -INFINITE, INFINITE);
-				printf("best score: %d\n", score);
+				printf("best score: %d, total node: %d\n", score, count);
 				return nextMove;
 			}
 
 			int alpha_beta_search(BoardData &board, int color, int alpha, int beta, int depth = 0) {
+				count++;
 				if (depth >= MAX_DEPTH || clock() > time_limit) {
 					return evaluate(board, color) - depth; // the quicker, the better
 				}
@@ -57,11 +59,16 @@ namespace Go
 					moves.push_back(Point(-1, -1));
 				}
 				for (Point move : moves) {
-					BoardData nextBoard(board);
-					nextBoard.play_move(move, color);
+					//BoardData nextBoard(board);
+					board.play_move(move, color);
 					lastMove = move;
 
-					int score = -alpha_beta_search(nextBoard, other_color(color), -beta, -alpha, depth+1);
+					int score = -alpha_beta_search(board, other_color(color), -beta, -alpha, depth+1);
+					board.undo();
+					//nextBoard.undo();
+					//if (!(board == nextBoard))
+					//	printf("not equal!");
+
 					if (score >= beta)
 						return score;
 					if (score > alpha) {
@@ -96,12 +103,17 @@ namespace Go
 						moves.push_back(move);
 				}
 
-				if (moves.empty())
+				if (moves.empty()) {
+					if (legal_moves.size() == board_size*board_size) {
+						moves.push_back(Point(board_size/2, board_size/2));
+						return moves;
+					}
 					return legal_moves;
+				}
 				else
 					return moves;
 			}
-			int evaluate(BoardData board, int color) {
+			int evaluate(BoardData &board, int color) {
 				int other = other_color(color), score = 0;
 
 				for (int i = 0; i < board_size; i++)
@@ -115,30 +127,53 @@ namespace Go
 				for (int i = 0; i < board_size; i++)
 					for (int j = 0; j < board_size; j++) {
 						Point p(i, j);
-						if (visited.find(p) == visited.end() && board.get_board(p) != EMPTY) {
-							int factor = (board.get_board(p) == color)?1:-1;
-							int count = 0, liberty = 0;
-							point_set liberty_set;
-							board.map_string(p, [&](Point q){
-								count ++;
-								visited.insert(q);
-								for (int k = 0; k < 4; k++) {
-									Point b = q+delta[k];
-									if (board.on_board(b) && board.get_board(b) == EMPTY && liberty_set.find(b)==liberty_set.end()) {
-										liberty++;
-										liberty_set.insert(b);
+						if (visited.find(p) == visited.end())
+							if (board.get_board(p) != EMPTY) {
+								int factor = (board.get_board(p) == color)?1:-1;
+								int count = 0, liberty = 0;
+								point_set liberty_set;
+								board.map_string(p, [&](Point q){
+									count ++;
+									visited.insert(q);
+									for (int k = 0; k < 4; k++) {
+										Point b = q+delta[k];
+										if (board.on_board(b) && board.get_board(b) == EMPTY && liberty_set.find(b)==liberty_set.end()) {
+											liberty++;
+											liberty_set.insert(b);
+										}
 									}
-								}
-							});
-							if (liberty == 1)
-								score -= factor*count * 20;
-							else if (liberty == 2)
-								score -= factor*count * 3;
-							else if (liberty > 2)
-								score += factor*count * 3;
-							score += factor*count * 5;
-							score += factor*liberty * 2;
-						}
+									return true;
+								});
+								if (liberty == 1)
+									score -= factor*count * 20;
+								else if (liberty == 2)
+									score -= factor*count * 3;
+								else if (liberty > 2)
+									score += factor*count * 3;
+								score += factor*count * 5;
+								score += factor*liberty * 2;
+							}
+							/*else {
+								int count = 0, our = 0, enemy = 0;
+								board.flood_fill(p, [&](Point q){
+									visited.insert(q);
+									if (board.get_board(q) == EMPTY)
+										count++;
+									else if (board.get_board(q) == color)
+										our++;
+									else
+										enemy++;
+									return true;
+								});
+
+								int factor = 0;
+								if (our == 0 && enemy > 0)
+									factor = -1, count += enemy;
+								else if (enemy == 0 && our > 0)
+									factor = 1, count += our;
+
+								score += factor * count * 10;
+							}*/
 					}
 
 				return score;
