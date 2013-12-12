@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="basic">
+      <UniqueIdentifier>{562c24ca-f295-438a-aeac-a0b68a914c88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="uct">
+      <UniqueIdentifier>{8e78f58e-be8b-481a-949c-2e088921f93f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="minmax">
+      <UniqueIdentifier>{ea2a3faf-55a4-4606-b13e-bcbdff6885f7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="basic.h">
+      <Filter>basic</Filter>
+    </ClInclude>
+    <ClInclude Include="brown.h">
+      <Filter>basic</Filter>
+    </ClInclude>
+    <ClInclude Include="eater.h">
+      <Filter>basic</Filter>
+    </ClInclude>
+    <ClInclude Include="engine.h">
+      <Filter>basic</Filter>
+    </ClInclude>
+    <ClInclude Include="gtp.h">
+      <Filter>basic</Filter>
+    </ClInclude>
+    <ClInclude Include="naiveSimulator.h">
+      <Filter>basic</Filter>
+    </ClInclude>
+    <ClInclude Include="minmax\minmax.h">
+      <Filter>minmax</Filter>
+    </ClInclude>
+    <ClInclude Include="uct\MonteCarlo.h">
+      <Filter>uct</Filter>
+    </ClInclude>
+    <ClInclude Include="uct\policy.h">
+      <Filter>uct</Filter>
+    </ClInclude>
+    <ClInclude Include="uct\tree.h">
+      <Filter>uct</Filter>
+    </ClInclude>
+    <ClInclude Include="uct\uct.h">
+      <Filter>uct</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
