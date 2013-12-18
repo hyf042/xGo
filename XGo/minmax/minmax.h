@@ -27,7 +27,7 @@ namespace Go
 		class Minmax : public BoardData
 		{
 			const static int INFINITE = 100000000;
-			const static int MAX_DEPTH = 4;
+			const static int MAX_DEPTH = 5;
 			const static int TIME_LIMIT = 10;
 
 			int time_limit, count;

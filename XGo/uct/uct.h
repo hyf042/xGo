@@ -60,7 +60,8 @@ namespace Go
 					if (p == root)
 						break;
 
-					p->monteCarlo(board, policy);
+					float value = p->monteCarlo(board, policy);
+					p->update(value>0.5f, value);
 					
 					if (p->is_mature()) {
 						printf("expand...\n");

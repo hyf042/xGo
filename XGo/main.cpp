@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 	unsigned int random_seed = (unsigned int)time(0);
 	if (argc > 1)
 	sscanf(argv[1], "%u", &random_seed);
-	srand(1);
+	srand(random_seed);
   
 	/* Make sure that stdout is not block buffered. */
 	setbuf(stdout, NULL);
@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 	FILE *f = fopen("dump.txt", "w");
 	
 	//Go::Engine *engine = new Go::UCT::UCT<Go::UCT::Policy>();
-	Go::NaiveSimulator *engine = new Go::MinMax::Minmax();
+	Go::NaiveSimulator *engine = new Go::UCT::UCT<Go::UCT::Policy>();
 	engine->init("log.txt");
 	// uncomment the following part if you want to debug a specific board
 	/*engine->set_board_size(13);

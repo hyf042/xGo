@@ -21,8 +21,8 @@ namespace Go
 		_p = _p->brother; \
 	}
 
-		const static int TimeLimit = 8;
-		const static int InitTimeLimit = 8;
+		const static int TimeLimit = 1;
+		const static int InitTimeLimit = 1;
 		const static int ExpandThrehold = 2;
 		const static float ExploreRate = 2.0f;
 
@@ -185,9 +185,7 @@ namespace Go
 			// simulate the board with monteCarlo algorithm
 			float monteCarlo(MonteCarlo &board, Policy &policy) {
 				MonteCarlo simulator(board);
-				float tmp = simulator.simulate(policy, color);
-				update(tmp>0.5f, tmp);
-				return tmp;
+				return simulator.simulate(policy, color);
 			}
 		};
 	}
